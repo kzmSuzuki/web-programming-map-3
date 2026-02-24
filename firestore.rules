@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /nodes/{nodeId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /users/{email}/progress/{nodeId} {
+      // 要件に合わせ、認証済みユーザーは集計用途の read を許可
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /config/{document} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email in get(/databases/$(database)/documents/config/admins).data.emails;
+    }
+  }
+}
