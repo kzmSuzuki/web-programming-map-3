@@ -7,11 +7,14 @@ type HeaderProps = {
 export const Header = ({ email }: HeaderProps) => {
   return (
     <header className="app-header">
-      <h1>Web Programming Skill Map</h1>
+      <div className="header-title">
+        <h1>Web Programming Skill Map</h1>
+        <span>Chapter 1 : Frontend</span>
+      </div>
       <div className="header-actions">
         <span>{email}</span>
         <button type="button" onClick={signOutUser}>
-          ログアウト
+          Logout
         </button>
       </div>
     </header>

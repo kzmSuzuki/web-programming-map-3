@@ -1,8 +1,38 @@
+import { useEffect, useMemo, useState } from 'react';
 import { MarkerType, ReactFlow, type Edge, type Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CustomNode } from './CustomNode';
 import { applyDagreLayout } from '../../utils/layout';
 import type { NodeState, SkillNode, UserProgress } from '../../types';
+
+const ANIMATION_DELAY_MS = 70;
+
+const topologicalOrder = (nodes: SkillNode[]): Map<string, number> => {
+  const children = new Map<string, SkillNode[]>();
+  for (const node of nodes) {
+    if (node.predecessorId) {
+      const list = children.get(node.predecessorId) ?? [];
+      list.push(node);
+      children.set(node.predecessorId, list);
+    }
+  }
+  const order = new Map<string, number>();
+  let idx = 0;
+  const roots = nodes.filter((n) => n.predecessorId === null);
+  const queue = [...roots];
+  let i = 0;
+  while (i < queue.length) {
+    const node = queue[i++];
+    order.set(node.id, idx++);
+    for (const child of children.get(node.id) ?? []) {
+      queue.push(child);
+    }
+  }
+  for (const node of nodes) {
+    if (!order.has(node.id)) order.set(node.id, idx++);
+  }
+  return order;
+};
 
 const nodeTypes = {
   skillNode: CustomNode,
@@ -49,13 +79,46 @@ const deriveState = (
 
 export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: Props) => {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  const animOrder = useMemo(() => topologicalOrder(nodes), [nodes]);
+  const orderedNodes = useMemo(
+    () => [...nodes].sort((a, b) => (animOrder.get(a.id) ?? 0) - (animOrder.get(b.id) ?? 0)),
+    [animOrder, nodes],
+  );
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  useEffect(() => {
+    if (orderedNodes.length === 0) {
+      setVisibleCount(0);
+      return;
+    }
+    setVisibleCount(0);
+    const timer = setInterval(() => {
+      setVisibleCount((prev) => {
+        if (prev >= orderedNodes.length) {
+          clearInterval(timer);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, ANIMATION_DELAY_MS);
+    return () => clearInterval(timer);
+  }, [orderedNodes]);
+
+  const visibleNodeIdSet = new Set(
+    orderedNodes.slice(0, visibleCount).map((node) => node.id),
+  );
 
   const flowNodes: Node[] = nodes.map((node) => {
     const state = deriveState(node, progress, nodeById);
+    const revealed = visibleNodeIdSet.has(node.id);
     return {
       id: node.id,
       type: 'skillNode',
       position: { x: 0, y: 0 },
+      style: {
+        opacity: revealed ? 1 : 0,
+        transition: 'opacity 0.32s ease-out',
+      },
       data: {
         id: node.id,
         label: node.label,
@@ -68,7 +131,7 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
     };
   });
 
-  const flowEdges: Edge[] = nodes
+  const allFlowEdges: Edge[] = nodes
     .filter((node) => node.predecessorId)
     .map((node) => ({
       id: `${node.predecessorId}->${node.id}`,
@@ -85,7 +148,11 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
       },
     }));
 
-  const layouted = applyDagreLayout(flowNodes, flowEdges);
+  const flowEdges: Edge[] = allFlowEdges.filter(
+    (edge) => visibleNodeIdSet.has(edge.source) && visibleNodeIdSet.has(edge.target),
+  );
+
+  const layouted = applyDagreLayout(flowNodes, allFlowEdges);
 
   return (
     <div className="graph-wrap">

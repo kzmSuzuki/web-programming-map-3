@@ -36,13 +36,17 @@ export const useUserProgress = (email?: string | null) => {
   return { progress, loading, error };
 };
 
-export const useAllProgress = () => {
+export const useAllProgress = (enabled: boolean) => {
   const [progressDocs, setProgressDocs] = useState<ProgressDoc[]>([]);
 
   useEffect(() => {
+    if (!enabled) {
+      setProgressDocs([]);
+      return;
+    }
     const unsub = subscribeAllProgress(setProgressDocs);
     return () => unsub();
-  }, []);
+  }, [enabled]);
 
   return { progressDocs };
 };

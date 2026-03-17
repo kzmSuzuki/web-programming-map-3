@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, ExternalLink, LockKeyhole, X, LockKeyholeOpen } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CircleStar, ExternalLink, LockKeyhole, X, LockKeyholeOpen } from 'lucide-react';
 import type { JSX } from 'react';
 import { Header } from '../components/common/Header';
 import { GraphView } from '../components/graph/GraphView';
@@ -14,7 +14,7 @@ export const StudentPage = () => {
   const { user } = useAuth();
   const { nodes, loading: nodeLoading, error: nodeError } = useNodes();
   const { progress, loading: progressLoading, error: progressError } = useUserProgress(user?.email);
-  const { progressDocs } = useAllProgress();
+  const { progressDocs } = useAllProgress(!!user);
   const [hoveredNode, setHoveredNode] = useState<{
     id: string;
     title: string;
@@ -24,6 +24,45 @@ export const StudentPage = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [isModalClosing, setIsModalClosing] = useState(false);
+  const [pendingNode, setPendingNode] = useState<typeof hoveredNode>(null);
+
+  const closeModal = useCallback(() => {
+    if (!hoveredNode || isModalClosing) return;
+    setPendingNode(null);
+    setIsModalClosing(true);
+  }, [hoveredNode, isModalClosing]);
+
+  const handleNodeHover = useCallback(
+    (details: typeof hoveredNode) => {
+      if (details) {
+        if (hoveredNode?.id === details.id) return;
+        if (hoveredNode && isModalClosing) {
+          setPendingNode(details);
+          return;
+        }
+        if (hoveredNode) {
+          setPendingNode(details);
+          setIsModalClosing(true);
+        } else {
+          setHoveredNode(details);
+        }
+      } else {
+        closeModal();
+      }
+    },
+    [closeModal, hoveredNode, isModalClosing],
+  );
+
+  useEffect(() => {
+    if (!isModalClosing || !hoveredNode) return;
+    const timer = setTimeout(() => {
+      setHoveredNode(pendingNode);
+      setPendingNode(null);
+      setIsModalClosing(false);
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [isModalClosing, hoveredNode, pendingNode]);
 
   useEffect(() => {
     if (!user?.email || nodes.length === 0) {
@@ -91,7 +130,7 @@ export const StudentPage = () => {
     },
     cleared: {
       icon: (
-        <Check
+        <CircleStar
           size={ICON_TOKENS.modalStateSize}
           strokeWidth={ICON_TOKENS.modalClearedStroke}
           color={ICON_COLOR_TOKENS.cleared}
@@ -130,33 +169,30 @@ export const StudentPage = () => {
   return (
     <div className="app-shell">
       <Header email={user?.email} />
-      <GraphView nodes={nodes} progress={progress} crowdArrivalCount={crowdArrivalCount} onNodeHover={setHoveredNode} />
+      <GraphView nodes={nodes} progress={progress} crowdArrivalCount={crowdArrivalCount} onNodeHover={handleNodeHover} />
       {hoveredNode && modalPos ? (
-        <aside className="node-detail-modal" style={modalPos} role="dialog" aria-label="ノード詳細">
-          <button type="button" className="node-modal-close" aria-label="閉じる" onClick={() => setHoveredNode(null)}>
-            <X size={ICON_TOKENS.modalCloseSize} strokeWidth={ICON_TOKENS.modalCloseStroke} />
+        <aside
+          className={`node-detail-modal ${isModalClosing ? 'node-detail-modal-closing' : ''}`}
+          style={modalPos}
+          role="dialog"
+          aria-label="ノード詳細"
+        >
+          <button type="button" className="node-modal-close" aria-label="閉じる" onClick={closeModal}>
+            <X size={ICON_TOKENS.modalCloseSize} strokeWidth={ICON_TOKENS.modalCloseStroke} color={ICON_COLOR_TOKENS.modalClose} />
           </button>
-          <h3>Node Details</h3>
-          <dl>
-            <dt>番号</dt>
-            <dd>{hoveredNode.id}</dd>
-            <dt>タイトル</dt>
-            <dd>{hoveredNode.title}</dd>
-            <dt>状態</dt>
-            <dd>
-              <span className="state-inline-icon">{stateView[hoveredNode.state].icon}</span>
-              {stateView[hoveredNode.state].label}
-            </dd>
-            <dt>概要文</dt>
-            <dd className="node-summary">{hoveredNode.summary || '概要文は未設定です。'}</dd>
-          </dl>
+          <h3>
+            <span className="node-detail-id">{hoveredNode.id}</span>
+            {hoveredNode.title} <span className="state-inline-icon">{stateView[hoveredNode.state].icon}</span>
+          </h3>
+          <div className="node-summary">{hoveredNode.summary || '概要文は未設定です。'}</div>
           <button
             type="button"
+            className="modal-external-btn"
             disabled={hoveredNode.state === 'initial'}
             onClick={() => openNode(hoveredNode.state, hoveredNode.notionUrl)}
           >
-            <ExternalLink size={ICON_TOKENS.modalExternalSize} strokeWidth={ICON_TOKENS.modalExternalStroke} />
-            別タブで開く
+            <ExternalLink size={ICON_TOKENS.modalExternalSize} strokeWidth={ICON_TOKENS.modalExternalStroke} color={'#2f3542'} />
+            <span className="modal-external-text"> Explore now !!</span>
           </button>
         </aside>
       ) : null}

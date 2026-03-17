@@ -106,19 +106,25 @@ export type ProgressDoc = {
 
 export const subscribeAllProgress = (onData: (progressDocs: ProgressDoc[]) => void): (() => void) => {
   const progressGroup = query(collectionGroup(db, 'progress'));
-  return onSnapshot(progressGroup, (snap) => {
-    const result: ProgressDoc[] = snap.docs.map((docSnap) => {
-      const [_, email, __, nodeId] = docSnap.ref.path.split('/');
-      const p = toProgress(nodeId, docSnap.data());
-      return {
-        email,
-        nodeId,
-        state: p.state,
-        clearedAt: p.clearedAt,
-      };
-    });
-    onData(result);
-  });
+  return onSnapshot(
+    progressGroup,
+    (snap) => {
+      const result: ProgressDoc[] = snap.docs.map((docSnap) => {
+        const [_, email, __, nodeId] = docSnap.ref.path.split('/');
+        const p = toProgress(nodeId, docSnap.data());
+        return {
+          email,
+          nodeId,
+          state: p.state,
+          clearedAt: p.clearedAt,
+        };
+      });
+      onData(result);
+    },
+    (err) => {
+      console.error('[subscribeAllProgress]', err);
+    },
+  );
 };
 
 export const getAdminConfig = async (): Promise<AdminConfig> => {

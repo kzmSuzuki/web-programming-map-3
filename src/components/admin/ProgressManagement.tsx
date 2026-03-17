@@ -37,17 +37,37 @@ export const ProgressManagement = ({ nodes }: { nodes: SkillNode[] }) => {
   return (
     <section className="card admin-card">
       <h3>学生進捗管理</h3>
-      <label>
-        受講生
-        <select value={selectedEmail} onChange={(e) => setSelectedEmail(e.target.value)}>
-          {students.map((email) => (
-            <option key={email} value={email}>
-              {email}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="admin-form-row">
+        <label>
+          受講生のメールアドレス
+          <input
+            type="email"
+            placeholder="例: student@example.com"
+            value={selectedEmail}
+            onChange={(e) => setSelectedEmail(e.target.value)}
+          />
+        </label>
+        {students.length > 0 && (
+          <label>
+            または一覧から選択
+            <select value={selectedEmail} onChange={(e) => setSelectedEmail(e.target.value)}>
+              <option value="">-- 選択 --</option>
+              {students.map((email) => (
+                <option key={email} value={email}>
+                  {email}
+                </option>
+              ))}
+              {selectedEmail && !students.includes(selectedEmail) && (
+                <option value={selectedEmail}>{selectedEmail}</option>
+              )}
+            </select>
+          </label>
+        )}
+      </div>
 
+      {!selectedEmail ? (
+        <p className="admin-hint">メールアドレスを入力するか、一覧から選択してください。</p>
+      ) : (
       <div className="table-wrap">
         <table>
           <thead>
@@ -94,6 +114,7 @@ export const ProgressManagement = ({ nodes }: { nodes: SkillNode[] }) => {
           </tbody>
         </table>
       </div>
+      )}
     </section>
   );
 };
