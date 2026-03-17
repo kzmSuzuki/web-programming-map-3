@@ -178,8 +178,7 @@ export const StudentPage = () => {
           aria-label="ノード詳細"
         >
           <button type="button" className="node-modal-close" aria-label="閉じる" onClick={closeModal}>
-            <X size={ICON_TOKENS.modalCloseSize} strokeWidth={ICON_TOKENS.modalCloseStroke} color={ICON_COLOR_TOKENS.modalClose} />
-          </button>
+            <X size={ICON_TOKENS.modalCloseSize} strokeWidth={ICON_TOKENS.modalCloseStroke} color="var(--color-text-base)" /></button>
           <h3>
             <span className="node-detail-id">{hoveredNode.id}</span>
             {hoveredNode.title} <span className="state-inline-icon">{stateView[hoveredNode.state].icon}</span>
