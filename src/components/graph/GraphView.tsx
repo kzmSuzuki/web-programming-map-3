@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MarkerType, ReactFlow, type Edge, type Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CustomNode } from './CustomNode';
 import { applyDagreLayout } from '../../utils/layout';
 import type { NodeState, SkillNode, UserProgress } from '../../types';
 
-const ANIMATION_DELAY_MS = 70;
+const ANIMATION_DELAY_MS = 40;
 
 const topologicalOrder = (nodes: SkillNode[]): Map<string, number> => {
   const children = new Map<string, SkillNode[]>();
@@ -85,6 +85,9 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
     [animOrder, nodes],
   );
   const [visibleCount, setVisibleCount] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const [showZoomHint, setShowZoomHint] = useState(false);
+  const zoomHintShown = useRef(false);
 
   useEffect(() => {
     if (orderedNodes.length === 0) {
@@ -92,6 +95,7 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
       return;
     }
     setVisibleCount(0);
+    setAnimating(true);
     const timer = setInterval(() => {
       setVisibleCount((prev) => {
         if (prev >= orderedNodes.length) {
@@ -101,7 +105,21 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
         return prev + 1;
       });
     }, ANIMATION_DELAY_MS);
-    return () => clearInterval(timer);
+
+    const totalDuration = orderedNodes.length * ANIMATION_DELAY_MS + 220;
+    const doneTimer = setTimeout(() => {
+      setAnimating(false);
+      if (!zoomHintShown.current) {
+        zoomHintShown.current = true;
+        setShowZoomHint(true);
+        setTimeout(() => setShowZoomHint(false), 3200);
+      }
+    }, totalDuration);
+
+    return () => {
+      clearInterval(timer);
+      clearTimeout(doneTimer);
+    };
   }, [orderedNodes]);
 
   const visibleNodeIdSet = new Set(
@@ -117,7 +135,7 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
       position: { x: 0, y: 0 },
       style: {
         opacity: revealed ? 1 : 0,
-        transition: 'opacity 0.32s ease-out',
+        transition: 'opacity 0.2s ease-out',
       },
       data: {
         id: node.id,
@@ -156,6 +174,20 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
 
   return (
     <div className="graph-wrap">
+      {showZoomHint && (
+        <div className="zoom-hint">
+          <div className="zoom-hint-icon">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="22" stroke="currentColor" strokeWidth="2.5" />
+              <line x1="24" y1="10" x2="24" y2="18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              <polyline points="20,14 24,10 28,14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <line x1="24" y1="30" x2="24" y2="38" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              <polyline points="20,34 24,38 28,34" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </svg>
+          </div>
+          <span className="zoom-hint-label">Scroll to zoom</span>
+        </div>
+      )}
       <ReactFlow
         fitView
         nodes={layouted}
@@ -169,6 +201,7 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
           minZoom: 0.2,
         }}
         onNodeMouseEnter={(event, node) => {
+          if (animating) return;
           const data = node.data as {
             id?: string;
             label?: string;
@@ -189,7 +222,7 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
             y: event.clientY,
           });
         }}
-        onPaneClick={() => onNodeHover(null)}
+        onPaneClick={() => { if (!animating) onNodeHover(null); }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
