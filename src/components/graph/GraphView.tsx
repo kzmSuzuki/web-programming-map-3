@@ -86,8 +86,10 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
   );
   const [visibleCount, setVisibleCount] = useState(0);
   const [animating, setAnimating] = useState(false);
+  const [animDone, setAnimDone] = useState(false);
   const [showZoomHint, setShowZoomHint] = useState(false);
   const zoomHintShown = useRef(false);
+  const nodeIdsKey = useMemo(() => nodes.map((n) => n.id).join(','), [nodes]);
 
   useEffect(() => {
     if (orderedNodes.length === 0) {
@@ -95,10 +97,13 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
       return;
     }
     setVisibleCount(0);
+    setAnimDone(false);
     setAnimating(true);
+
+    const total = orderedNodes.length;
     const timer = setInterval(() => {
       setVisibleCount((prev) => {
-        if (prev >= orderedNodes.length) {
+        if (prev >= total) {
           clearInterval(timer);
           return prev;
         }
@@ -106,8 +111,9 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
       });
     }, ANIMATION_DELAY_MS);
 
-    const totalDuration = orderedNodes.length * ANIMATION_DELAY_MS + 220;
+    const totalDuration = total * ANIMATION_DELAY_MS + 220;
     const doneTimer = setTimeout(() => {
+      setAnimDone(true);
       setAnimating(false);
       if (!zoomHintShown.current) {
         zoomHintShown.current = true;
@@ -120,15 +126,16 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
       clearInterval(timer);
       clearTimeout(doneTimer);
     };
-  }, [orderedNodes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeIdsKey]);
 
-  const visibleNodeIdSet = new Set(
-    orderedNodes.slice(0, visibleCount).map((node) => node.id),
-  );
+  const visibleNodeIdSet = animDone
+    ? null
+    : new Set(orderedNodes.slice(0, visibleCount).map((node) => node.id));
 
   const flowNodes: Node[] = nodes.map((node) => {
     const state = deriveState(node, progress, nodeById);
-    const revealed = visibleNodeIdSet.has(node.id);
+    const revealed = visibleNodeIdSet === null || visibleNodeIdSet.has(node.id);
     return {
       id: node.id,
       type: 'skillNode',
@@ -166,9 +173,11 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
       },
     }));
 
-  const flowEdges: Edge[] = allFlowEdges.filter(
-    (edge) => visibleNodeIdSet.has(edge.source) && visibleNodeIdSet.has(edge.target),
-  );
+  const flowEdges: Edge[] = visibleNodeIdSet === null
+    ? allFlowEdges
+    : allFlowEdges.filter(
+        (edge) => visibleNodeIdSet.has(edge.source) && visibleNodeIdSet.has(edge.target),
+      );
 
   const layouted = applyDagreLayout(flowNodes, allFlowEdges);
 
