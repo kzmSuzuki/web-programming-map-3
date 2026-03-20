@@ -64,13 +64,22 @@ export const StudentPage = () => {
     return () => clearTimeout(timer);
   }, [isModalClosing, hoveredNode, pendingNode]);
 
+  const rootIdsKey = useMemo(
+    () =>
+      nodes
+        .filter((node) => node.predecessorId === null)
+        .map((n) => n.id)
+        .sort((a, b) => a.localeCompare(b))
+        .join(','),
+    [nodes],
+  );
+
   useEffect(() => {
-    if (!user?.email || nodes.length === 0) {
-      return;
-    }
-    const rootIds = nodes.filter((node) => node.predecessorId === null).map((n) => n.id);
-    void ensureRootActive(user.email, rootIds);
-  }, [nodes, user?.email]);
+    if (!user?.email || !rootIdsKey) return;
+    const rootIds = rootIdsKey.split(',').filter(Boolean);
+    if (rootIds.length === 0) return;
+    void ensureRootActive(user.email, rootIds).catch(() => {});
+  }, [user?.email, rootIdsKey]);
 
   const crowdArrivalCount = useMemo(() => {
     if (!user?.email) {
@@ -154,10 +163,6 @@ export const StudentPage = () => {
     return { left, top };
   }, [hoveredNode]);
 
-  if (nodeLoading || progressLoading) {
-    return <div className="centered">Loading...</div>;
-  }
-
   if (nodeError || progressError) {
     return (
       <div className="centered">
@@ -166,10 +171,19 @@ export const StudentPage = () => {
     );
   }
 
+  const showDataOverlay = nodeLoading || progressLoading;
+
   return (
     <div className="app-shell">
       <Header email={user?.email} />
-      <GraphView nodes={nodes} progress={progress} crowdArrivalCount={crowdArrivalCount} onNodeHover={handleNodeHover} />
+      <div className="student-graph-host">
+        {showDataOverlay ? (
+          <div className="graph-loading-overlay" aria-busy="true" aria-live="polite">
+            <span className="graph-loading-text">Loading...</span>
+          </div>
+        ) : null}
+        <GraphView nodes={nodes} progress={progress} crowdArrivalCount={crowdArrivalCount} onNodeHover={handleNodeHover} />
+      </div>
       {hoveredNode && modalPos ? (
         <aside
           className={`node-detail-modal ${isModalClosing ? 'node-detail-modal-closing' : ''}`}

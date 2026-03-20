@@ -1,38 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { MarkerType, ReactFlow, type Edge, type Node } from '@xyflow/react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { MarkerType, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CustomNode } from './CustomNode';
 import { applyDagreLayout } from '../../utils/layout';
 import type { NodeState, SkillNode, UserProgress } from '../../types';
-
-const ANIMATION_DELAY_MS = 40;
-
-const topologicalOrder = (nodes: SkillNode[]): Map<string, number> => {
-  const children = new Map<string, SkillNode[]>();
-  for (const node of nodes) {
-    if (node.predecessorId) {
-      const list = children.get(node.predecessorId) ?? [];
-      list.push(node);
-      children.set(node.predecessorId, list);
-    }
-  }
-  const order = new Map<string, number>();
-  let idx = 0;
-  const roots = nodes.filter((n) => n.predecessorId === null);
-  const queue = [...roots];
-  let i = 0;
-  while (i < queue.length) {
-    const node = queue[i++];
-    order.set(node.id, idx++);
-    for (const child of children.get(node.id) ?? []) {
-      queue.push(child);
-    }
-  }
-  for (const node of nodes) {
-    if (!order.has(node.id)) order.set(node.id, idx++);
-  }
-  return order;
-};
 
 const nodeTypes = {
   skillNode: CustomNode,
@@ -77,73 +48,95 @@ const deriveState = (
   return progressByNodeId[predecessor.id]?.state === 'cleared' ? 'active' : 'initial';
 };
 
-export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: Props) => {
-  const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  const animOrder = useMemo(() => topologicalOrder(nodes), [nodes]);
-  const orderedNodes = useMemo(
-    () => [...nodes].sort((a, b) => (animOrder.get(a.id) ?? 0) - (animOrder.get(b.id) ?? 0)),
-    [animOrder, nodes],
-  );
-  const [visibleCount, setVisibleCount] = useState(0);
-  const [animating, setAnimating] = useState(false);
-  const [animDone, setAnimDone] = useState(false);
-  const [showZoomHint, setShowZoomHint] = useState(false);
-  const zoomHintShown = useRef(false);
-  const nodeIdsKey = useMemo(() => nodes.map((n) => n.id).join(','), [nodes]);
+const FIT_VIEW_OPTS = { padding: 0.45, minZoom: 0.2 } as const;
 
-  useEffect(() => {
-    if (orderedNodes.length === 0) {
-      setVisibleCount(0);
+type FlowInnerProps = {
+  layouted: Node[];
+  flowEdges: Edge[];
+  nodeIdsKey: string;
+  onNodeHover: Props['onNodeHover'];
+};
+
+const GraphFlowInner = ({ layouted, flowEdges, nodeIdsKey, onNodeHover }: FlowInnerProps) => {
+  const { fitView } = useReactFlow();
+  const fittedForKeyRef = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (!nodeIdsKey || layouted.length === 0) {
+      fittedForKeyRef.current = null;
       return;
     }
-    setVisibleCount(0);
-    setAnimDone(false);
-    setAnimating(true);
+    if (fittedForKeyRef.current === nodeIdsKey) return;
+    fittedForKeyRef.current = nodeIdsKey;
+    const id = requestAnimationFrame(() => {
+      void fitView(FIT_VIEW_OPTS);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [nodeIdsKey, layouted.length, fitView]);
 
-    const total = orderedNodes.length;
-    const timer = setInterval(() => {
-      setVisibleCount((prev) => {
-        if (prev >= total) {
-          clearInterval(timer);
-          return prev;
+  return (
+    <ReactFlow
+      fitView={false}
+      nodes={layouted}
+      edges={flowEdges}
+      nodeTypes={nodeTypes}
+      defaultEdgeOptions={{
+        zIndex: 1,
+      }}
+      fitViewOptions={FIT_VIEW_OPTS}
+      onNodeMouseEnter={(event, node) => {
+        const data = node.data as {
+          id?: string;
+          label?: string;
+          state?: NodeState;
+          summary?: string;
+          notionUrl?: string;
+        };
+        if (!data.id || !data.label || !data.state || !data.notionUrl) {
+          return;
         }
-        return prev + 1;
-      });
-    }, ANIMATION_DELAY_MS);
+        onNodeHover({
+          id: data.id,
+          title: data.label,
+          state: data.state,
+          summary: data.summary ?? '',
+          notionUrl: data.notionUrl,
+          x: event.clientX,
+          y: event.clientY,
+        });
+      }}
+      onPaneClick={() => onNodeHover(null)}
+      nodesDraggable={false}
+      nodesConnectable={false}
+      elementsSelectable={false}
+    />
+  );
+};
 
-    const totalDuration = total * ANIMATION_DELAY_MS + 220;
-    const doneTimer = setTimeout(() => {
-      setAnimDone(true);
-      setAnimating(false);
-      if (!zoomHintShown.current) {
-        zoomHintShown.current = true;
-        setShowZoomHint(true);
-        setTimeout(() => setShowZoomHint(false), 3200);
-      }
-    }, totalDuration);
+export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: Props) => {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  const nodeIdsKey = useMemo(() => nodes.map((n) => n.id).join(','), [nodes]);
+  const [showZoomHint, setShowZoomHint] = useState(false);
+  const zoomHintKeyRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (nodes.length === 0) return;
+    if (zoomHintKeyRef.current === nodeIdsKey) return;
+    zoomHintKeyRef.current = nodeIdsKey;
+    setShowZoomHint(true);
+    const t = window.setTimeout(() => setShowZoomHint(false), 3200);
     return () => {
-      clearInterval(timer);
-      clearTimeout(doneTimer);
+      clearTimeout(t);
+      zoomHintKeyRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeIdsKey]);
-
-  const visibleNodeIdSet = animDone
-    ? null
-    : new Set(orderedNodes.slice(0, visibleCount).map((node) => node.id));
+  }, [nodeIdsKey, nodes.length]);
 
   const flowNodes: Node[] = nodes.map((node) => {
     const state = deriveState(node, progress, nodeById);
-    const revealed = visibleNodeIdSet === null || visibleNodeIdSet.has(node.id);
     return {
       id: node.id,
       type: 'skillNode',
       position: { x: 0, y: 0 },
-      style: {
-        opacity: revealed ? 1 : 0,
-        transition: 'opacity 0.2s ease-out',
-      },
       data: {
         id: node.id,
         label: node.label,
@@ -156,7 +149,7 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
     };
   });
 
-  const allFlowEdges: Edge[] = nodes
+  const flowEdges: Edge[] = nodes
     .filter((node) => node.predecessorId)
     .map((node) => ({
       id: `${node.predecessorId}->${node.id}`,
@@ -173,13 +166,7 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
       },
     }));
 
-  const flowEdges: Edge[] = visibleNodeIdSet === null
-    ? allFlowEdges
-    : allFlowEdges.filter(
-        (edge) => visibleNodeIdSet.has(edge.source) && visibleNodeIdSet.has(edge.target),
-      );
-
-  const layouted = applyDagreLayout(flowNodes, allFlowEdges);
+  const layouted = applyDagreLayout(flowNodes, flowEdges);
 
   return (
     <div className="graph-wrap">
@@ -197,45 +184,9 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
           <span className="zoom-hint-label">Scroll to zoom</span>
         </div>
       )}
-      <ReactFlow
-        fitView
-        nodes={layouted}
-        edges={flowEdges}
-        nodeTypes={nodeTypes}
-        defaultEdgeOptions={{
-          zIndex: 1,
-        }}
-        fitViewOptions={{
-          padding: 0.45,
-          minZoom: 0.2,
-        }}
-        onNodeMouseEnter={(event, node) => {
-          if (animating) return;
-          const data = node.data as {
-            id?: string;
-            label?: string;
-            state?: NodeState;
-            summary?: string;
-            notionUrl?: string;
-          };
-          if (!data.id || !data.label || !data.state || !data.notionUrl) {
-            return;
-          }
-          onNodeHover({
-            id: data.id,
-            title: data.label,
-            state: data.state,
-            summary: data.summary ?? '',
-            notionUrl: data.notionUrl,
-            x: event.clientX,
-            y: event.clientY,
-          });
-        }}
-        onPaneClick={() => { if (!animating) onNodeHover(null); }}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-      />
+      <ReactFlowProvider>
+        <GraphFlowInner layouted={layouted} flowEdges={flowEdges} nodeIdsKey={nodeIdsKey} onNodeHover={onNodeHover} />
+      </ReactFlowProvider>
     </div>
   );
 };
