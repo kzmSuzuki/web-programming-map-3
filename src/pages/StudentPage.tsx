@@ -8,6 +8,7 @@ import { ensureRootActive } from '../firebase/firestore';
 import { useAllProgress, useUserProgress } from '../hooks/useProgress';
 import { useNodes } from '../hooks/useNodes';
 import { useAuth } from '../hooks/useAuth';
+import { deriveNodeState } from '../utils/deriveNodeState';
 import type { NodeState } from '../types';
 
 export const StudentPage = () => {
@@ -80,6 +81,14 @@ export const StudentPage = () => {
     if (rootIds.length === 0) return;
     void ensureRootActive(user.email, rootIds).catch(() => {});
   }, [user?.email, rootIdsKey]);
+
+  const basicProgress = useMemo(() => {
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
+    const basicNodes = nodes.filter((n) => n.level === 'basic');
+    const total = basicNodes.length;
+    const cleared = basicNodes.filter((n) => deriveNodeState(n, progress, nodeById) === 'cleared').length;
+    return { cleared, total };
+  }, [nodes, progress]);
 
   const crowdArrivalCount = useMemo(() => {
     if (!user?.email) {
@@ -175,7 +184,7 @@ export const StudentPage = () => {
 
   return (
     <div className="app-shell">
-      <Header email={user?.email} />
+      <Header email={user?.email} basicProgress={showDataOverlay ? null : basicProgress} />
       <div className="student-graph-host">
         {showDataOverlay ? (
           <div className="graph-loading-overlay" aria-busy="true" aria-live="polite">

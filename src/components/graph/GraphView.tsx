@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { MarkerType, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CustomNode } from './CustomNode';
+import { deriveNodeState } from '../../utils/deriveNodeState';
 import { applyDagreLayout } from '../../utils/layout';
 import type { NodeState, SkillNode, UserProgress } from '../../types';
 
@@ -24,28 +25,6 @@ type Props = {
       y: number;
     } | null,
   ) => void;
-};
-
-const deriveState = (
-  node: SkillNode,
-  progressByNodeId: Record<string, UserProgress>,
-  nodeById: Map<string, SkillNode>,
-): NodeState => {
-  const own = progressByNodeId[node.id]?.state;
-  if (own) {
-    return own;
-  }
-
-  if (node.predecessorId === null) {
-    return 'active';
-  }
-
-  const predecessor = nodeById.get(node.predecessorId);
-  if (!predecessor) {
-    return 'initial';
-  }
-
-  return progressByNodeId[predecessor.id]?.state === 'cleared' ? 'active' : 'initial';
 };
 
 const FIT_VIEW_OPTS = { padding: 0.45, minZoom: 0.2 } as const;
@@ -132,7 +111,7 @@ export const GraphView = ({ nodes, progress, crowdArrivalCount, onNodeHover }: P
   }, [nodeIdsKey, nodes.length]);
 
   const flowNodes: Node[] = nodes.map((node) => {
-    const state = deriveState(node, progress, nodeById);
+    const state = deriveNodeState(node, progress, nodeById);
     return {
       id: node.id,
       type: 'skillNode',

@@ -67,6 +67,34 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-basic-progress {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-left: 4px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(47, 164, 122, 0.1);
+  border: 1px solid rgba(47, 164, 122, 0.28);
+  font-size: 13px;
+  color: #2d4a3e;
+}
+
+.header-basic-label {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  color: #2fa47a;
+}
+
+.header-basic-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
 }
 
 .header-actions {
@@ -365,12 +393,14 @@ button:hover {
   box-shadow:
     10px 10px 20px rgba(170, 179, 196, 0.55),
     -10px -10px 20px rgba(255, 255, 255, 0.92),
-    0 0 0 2px rgba(242, 179, 77, 0.38),
-    0 0 18px rgba(244, 180, 80, 0.35);
+    0 0 0 4px rgba(32, 150, 108, 0.75),
+    0 0 28px 6px rgba(42, 185, 132, 0.58),
+    0 0 64px 16px rgba(28, 168, 118, 0.46),
+    0 0 96px 22px rgba(72, 210, 160, 0.22);
 }
 
 .node-active .node-state {
-  color: #a15f0b;
+  color: #157a5c;
 }
 
 .node-active,
@@ -401,7 +431,7 @@ button:hover {
 }
 
 .node-state-active {
-  color: #a15f0b;
+  color: #157a5c;
 }
 
 .node-state-cleared {
