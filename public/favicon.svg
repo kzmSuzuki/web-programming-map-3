@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Background: project's dark base color -->
+  <rect width="64" height="64" rx="12" fill="#2f3542"/>
+
+  <!-- Code brackets < > : light graph background tone -->
+  <path d="M18 22 L8 32 L18 42" stroke="#eaedf2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46 22 L56 32 L46 42" stroke="#eaedf2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Center node: accent green (active/progress color) -->
+  <circle cx="32" cy="32" r="5" fill="#2fa47a"/>
+
+  <!-- Connecting lines: darker green accent -->
+  <line x1="32" y1="32" x2="22" y2="22" stroke="#2f7d6a" stroke-width="2" stroke-linecap="round"/>
+  <line x1="32" y1="32" x2="42" y2="22" stroke="#2f7d6a" stroke-width="2" stroke-linecap="round"/>
+  <line x1="32" y1="32" x2="22" y2="42" stroke="#2f7d6a" stroke-width="2" stroke-linecap="round"/>
+  <line x1="32" y1="32" x2="42" y2="42" stroke="#2f7d6a" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Corner nodes: node orb light tone -->
+  <circle cx="22" cy="22" r="3" fill="#dde2ea"/>
+  <circle cx="42" cy="22" r="3" fill="#dde2ea"/>
+  <circle cx="22" cy="42" r="3" fill="#dde2ea"/>
+  <circle cx="42" cy="42" r="3" fill="#dde2ea"/>
+</svg>

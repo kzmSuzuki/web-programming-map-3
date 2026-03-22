@@ -574,6 +574,201 @@ td {
   z-index: 1;
 }
 
+/* ===== 全体進捗一覧テーブル ===== */
+
+.progress-matrix-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.progress-matrix-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.state-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.state-badge-initial {
+  background: #e8eaed;
+  color: #5f6368;
+  border: 1px solid #d0d3d9;
+}
+
+.state-badge-active {
+  background: #e6f4ea;
+  color: #137333;
+  border: 1px solid #b7dfc5;
+}
+
+.state-badge-cleared {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f0c98c;
+}
+
+.csv-export-btn {
+  padding: 5px 14px;
+  background: #2f3542;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.csv-export-btn:hover {
+  background: #4a5568;
+}
+
+.progress-matrix {
+  border-collapse: collapse;
+  width: auto;
+  min-width: 100%;
+  font-size: 0.85rem;
+}
+
+.progress-matrix th,
+.progress-matrix td {
+  border: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.progress-matrix thead th {
+  background: #f8fafc;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.progress-matrix-email-col {
+  min-width: 180px;
+  position: sticky;
+  left: 0;
+  z-index: 2 !important;
+  background: #f8fafc !important;
+}
+
+.progress-matrix-cleared-col {
+  min-width: 80px;
+  text-align: center;
+  position: sticky;
+  left: 180px;
+  z-index: 2 !important;
+  background: #f8fafc !important;
+}
+
+.progress-matrix-node-col {
+  min-width: 72px;
+  text-align: center;
+}
+
+.progress-matrix-node-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.progress-matrix-node-id {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.progress-matrix-node-label {
+  font-size: 0.68rem;
+  color: #718096;
+  font-weight: 400;
+  max-width: 68px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-matrix tbody tr:hover {
+  background: #f0f4f8;
+}
+
+.progress-matrix-email {
+  font-size: 0.82rem;
+  color: #2d3748;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+.progress-matrix tbody tr:hover .progress-matrix-email {
+  background: #f0f4f8;
+}
+
+.progress-matrix-cleared-count {
+  text-align: center;
+  font-weight: 600;
+  color: #2d3748;
+  position: sticky;
+  left: 180px;
+  background: #fff;
+  z-index: 1;
+}
+
+.progress-matrix tbody tr:hover .progress-matrix-cleared-count {
+  background: #f0f4f8;
+}
+
+.progress-matrix-cell {
+  text-align: center;
+  padding: 4px 6px;
+}
+
+.progress-matrix-level-header {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  border-bottom: none;
+}
+
+.progress-matrix-level-basic {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-bottom: 2px solid #93c5fd;
+}
+
+.progress-matrix-level-advanced {
+  background: #fdf4ff;
+  color: #7c3aed;
+  border-bottom: 2px solid #d8b4fe;
+}
+
+.progress-matrix-level-basic-sub {
+  background: #f8faff;
+  border-top: 2px solid #93c5fd;
+}
+
+.progress-matrix-level-advanced-sub {
+  background: #fdf8ff;
+  border-top: 2px solid #d8b4fe;
+}
+
+/* ===== End 全体進捗一覧テーブル ===== */
+
 .modal-external-text {
   font-weight: bold;
   font-size: 12px;
