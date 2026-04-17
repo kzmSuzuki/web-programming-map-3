@@ -12,9 +12,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // collection group クエリ用（subscribeAllProgress で必要、Admin のみ）
+    // collection group クエリ用（subscribeAllProgress で必要）
+    // read は認証済みユーザー全員に許可（crowd count の集計に必要）
+    // write は Admin のみ
     match /{path=**}/progress/{nodeId} {
-      allow read: if isAdmin();
+      allow read: if request.auth != null;
       allow write: if isAdmin();
     }
 

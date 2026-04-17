@@ -95,22 +95,12 @@ export const StudentPage = () => {
       return {} as Record<string, number>;
     }
 
-    const latestByUser = new Map<string, { nodeId: string; at: number }>();
-
+    const counts: Record<string, number> = {};
     progressDocs.forEach((doc) => {
-      if (doc.email === user.email || doc.state !== 'cleared' || !doc.clearedAt) {
+      if (doc.email === user.email || doc.state !== 'cleared') {
         return;
       }
-      const at = doc.clearedAt.toMillis();
-      const curr = latestByUser.get(doc.email);
-      if (!curr || curr.at < at) {
-        latestByUser.set(doc.email, { nodeId: doc.nodeId, at });
-      }
-    });
-
-    const counts: Record<string, number> = {};
-    latestByUser.forEach(({ nodeId }) => {
-      counts[nodeId] = (counts[nodeId] ?? 0) + 1;
+      counts[doc.nodeId] = (counts[doc.nodeId] ?? 0) + 1;
     });
     return counts;
   }, [progressDocs, user?.email]);
